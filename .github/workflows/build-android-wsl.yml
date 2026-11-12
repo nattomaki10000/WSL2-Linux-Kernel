@@ -1,0 +1,61 @@
+name: Build WSL2 Kernel for Waydroid (GAPPS Ready)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential flex bison libssl-dev libelf-dev bc dwarves python3 cpio
+
+      - name: Clone WSL2-Linux-Kernel
+        run: |
+          git clone --depth=1 https://github.com/microsoft/WSL2-Linux-Kernel
+          cd WSL2-Linux-Kernel
+          cp Microsoft/config-wsl .config
+
+      - name: Enable Android & Waydroid Kernel Features
+        working-directory: ./WSL2-Linux-Kernel
+        run: |
+          # Android (Binder) 関連の必須設定
+          scripts/config --enable CONFIG_ANDROID
+          scripts/config --enable CONFIG_ANDROID_BINDER_IPC
+          scripts/config --enable CONFIG_ANDROID_BINDERFS
+          scripts/config --set-str CONFIG_ANDROID_BINDER_DEVICES "binder,hwbinder,vndbinder"
+
+          # メモリ共有・コンテナ管理（GAPPS・重いアプリ動作向け）
+          scripts/config --enable CONFIG_MEMFD_CREATE
+          scripts/config --enable CONFIG_PSI
+          scripts/config --enable CONFIG_BLK_DEV_LOOP
+          scripts/config --enable CONFIG_DM_VERITY
+
+          # ネットワーク・ファイアウォール関連（Playストアの通信エラー防止）
+          scripts/config --enable CONFIG_BRIDGE
+          scripts/config --enable CONFIG_BRIDGE_NETFILTER
+          scripts/config --enable CONFIG_IP_NF_IPTABLES
+          scripts/config --enable CONFIG_IP6_NF_IPTABLES
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_COMMENT
+          scripts/config --enable CONFIG_NETFILTER_XT_TARGET_CHECKSUM
+          scripts/config --enable CONFIG_NF_NAT
+          scripts/config --enable CONFIG_IP_NF_NAT
+
+          # ビルド時間短縮とディスク容量節約
+          scripts/config --disable CONFIG_DEBUG_INFO
+          scripts/config --disable CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
+
+          make olddefconfig
+
+      - name: Build Kernel
+        working-directory: ./WSL2-Linux-Kernel
+        run: |
+          make -j$(nproc)
+
+      - name: Upload bzImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: wsl2-waydroid-bzImage
+          path: WSL2-Linux-Kernel/arch/x86/boot/bzImage
