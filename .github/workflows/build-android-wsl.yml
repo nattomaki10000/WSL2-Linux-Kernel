@@ -33,7 +33,7 @@ jobs:
           scripts/config --enable CONFIG_BLK_DEV_LOOP
           scripts/config --enable CONFIG_DM_VERITY
 
-          # ネットワーク・ファイアウォール関連（Playストアの通信エラー防止・カーネル組み込み）
+          # ネットワーク・ファイアウォール関連をすべて有効化
           scripts/config --enable CONFIG_BRIDGE
           scripts/config --enable CONFIG_BRIDGE_NETFILTER
           scripts/config --enable CONFIG_VETH
@@ -41,29 +41,44 @@ jobs:
           scripts/config --enable CONFIG_NETFILTER_ADVANCED
           scripts/config --enable CONFIG_NF_CONNTRACK
           scripts/config --enable CONFIG_NF_NAT
+          scripts/config --enable CONFIG_NF_TABLES
+          scripts/config --enable CONFIG_NF_TABLES_INET
+          scripts/config --enable CONFIG_NF_TABLES_IPV4
+          scripts/config --enable CONFIG_NF_TABLES_IPV6
+          scripts/config --enable CONFIG_NF_TABLES_BRIDGE
+          scripts/config --enable CONFIG_NFT_NAT
+          scripts/config --enable CONFIG_NFT_MASQ
+          scripts/config --enable CONFIG_NFT_CT
+          scripts/config --enable CONFIG_NFT_COMPAT
+          scripts/config --enable CONFIG_NETFILTER_XTABLES
+          scripts/config --enable CONFIG_NETFILTER_XTABLES_LEGACY
+          scripts/config --enable CONFIG_NETFILTER_XT_NAT
+          scripts/config --enable CONFIG_NETFILTER_XT_TARGET_MASQUERADE
+          scripts/config --enable CONFIG_NETFILTER_XT_TARGET_CHECKSUM
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_COMMENT
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_CONNTRACK
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_STATE
           scripts/config --enable CONFIG_IP_NF_IPTABLES
+          scripts/config --enable CONFIG_IP_NF_IPTABLES_LEGACY
           scripts/config --enable CONFIG_IP_NF_FILTER
           scripts/config --enable CONFIG_IP_NF_NAT
           scripts/config --enable CONFIG_IP_NF_TARGET_MASQUERADE
           scripts/config --enable CONFIG_IP_NF_MANGLE
           scripts/config --enable CONFIG_IP6_NF_IPTABLES
+          scripts/config --enable CONFIG_IP6_NF_IPTABLES_LEGACY
           scripts/config --enable CONFIG_IP6_NF_FILTER
           scripts/config --enable CONFIG_IP6_NF_NAT
           scripts/config --enable CONFIG_IP6_NF_TARGET_MASQUERADE
           scripts/config --enable CONFIG_IP6_NF_MANGLE
-          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_COMMENT
-          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_CONNTRACK
-          scripts/config --enable CONFIG_NETFILTER_XT_TARGET_CHECKSUM
-          scripts/config --enable CONFIG_NF_TABLES
-          scripts/config --enable CONFIG_NF_TABLES_INET
-          scripts/config --enable CONFIG_NFT_NAT
-          scripts/config --enable CONFIG_NFT_MASQ
-          scripts/config --enable CONFIG_NFT_CT
 
           # ビルド時間短縮とディスク容量節約
           scripts/config --disable CONFIG_DEBUG_INFO
           scripts/config --disable CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
 
+          make olddefconfig
+
+          # ネットフィルタ・ブリッジ関連のモジュール(=m)をすべてカーネル本体組み込み(=y)に強制変換
+          sed -i -E 's/^(CONFIG_(NF|NFT|NETFILTER|IP_NF|IP6_NF|BRIDGE|VETH)[A-Z0-9_]*)=m/\1=y/' .config
           make olddefconfig
 
       - name: Build Kernel
